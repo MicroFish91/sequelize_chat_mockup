@@ -1,7 +1,7 @@
-const postsRouter = require("./posts");
+const lessonsRouter = require("./lessons");
 
 const combineRouter = (app) => {
-  app.use("/posts", postsRouter);
+  app.use("/api/lessons", lessonsRouter);
 };
 
-export default combineRouter;
+module.exports = combineRouter;
