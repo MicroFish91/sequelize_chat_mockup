@@ -66,12 +66,22 @@ router.get("/:lessonId/questions", async (req, res) => {
 
   const questionsList = await db.Questions.findAll({
     where: { activity_id: lessonId },
-    include: {
-      model: db.Answers,
-      include: {
-        model: db.Replies,
+    include: [
+      {
+        model: db.Question_upvotes,
       },
-    },
+      {
+        model: db.Answers,
+        include: [
+          {
+            model: db.Replies,
+          },
+          {
+            model: db.Answer_upvotes,
+          },
+        ],
+      },
+    ],
   });
 
   res.json(questionsList);
