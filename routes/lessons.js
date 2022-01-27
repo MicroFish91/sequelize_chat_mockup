@@ -61,30 +61,99 @@ const router = express.Router();
   @priv: paid user
 */
 
+// One call
+// class => sections
+// sections => activities
+
+// Two calls
+// activities => questions
+// questions => answers, replies-to-answer
+
+// Front end
+
+// Fetch user data
+// Logging In => jsonwebtoken => user data gets loaded into redux
+// including the classes you are enrolled in
+
+// Fetch paths/activities
+// paths/sections
+
+// Fetch activityId
+// Fetch Questions => answers => replies
+
+// 2 Fetches
+
+// /api/activities/1/questions
+// Q/A
+
+// naming convention routes
+
+// Q/A
+// QAR
+// Q => A => R
+
+// ["createdAt", "ASC"]
+
+// /api/activities/:activityId
 router.get("/:lessonId/questions", async (req, res) => {
   const { lessonId } = req.params;
 
-  const questionsList = await db.Questions.findAll({
-    where: { activity_id: lessonId },
-    include: [
-      {
-        model: db.Question_upvotes,
-      },
-      {
-        model: db.Answers,
-        include: [
-          {
-            model: db.Replies,
-          },
-          {
-            model: db.Answer_upvotes,
-          },
-        ],
-      },
-    ],
-  });
+  // const questionsList = await db.Questions.findAll({
+  //   where: { activity_id: lessonId },
+  //   order: [[Sequelize.count(db.Questions_upvotes), "ASC"]],
+  //   include: [
+  //     {
+  //       model: db.Question_upvotes,
+  //     },
+  //     {
+  //       model: db.Answers,
+  //       include: [
+  //         {
+  //           model: db.Replies,
+  //         },
+  //         {
+  //           model: db.Answer_upvotes,
+  //         },
+  //       ],
+  //     },
+  //   ],
+  // });
 
-  res.json(questionsList);
+  try {
+    const questionsList = await db.sequelize.query(
+      `
+              SELECT q.id
+              ,q.message
+              ,q.user_id
+              ,q."activity_id"
+              ,q."createdAt"
+              ,q."updatedAt"
+              , COALESCE(qu.total,0) as total_upvotes,  array_agg(quser.user_id)
+        FROM "Questions" q
+        LEFT JOIN (
+                  SELECT question_id, COUNT(1) AS total
+                  FROM "Question_upvotes"
+                  GROUP BY question_id
+                  --order by total
+                  ) qu ON q.id = qu.question_id
+        LEFT JOIN (
+                  SELECT question_id, user_id
+                  FROM "Question_upvotes"
+                ) quser ON quser.question_id = q.id
+        GROUP BY q.id
+              ,q.message
+              ,q.user_id
+              ,q."activity_id"
+              ,q."createdAt"
+              ,q."updatedAt"
+              ,COALESCE(qu.total,0)
+        ORDER BY total_upvotes DESC
+      `
+    );
+    res.json(questionsList);
+  } catch (err) {
+    console.log(err);
+  }
 });
 
 module.exports = router;
